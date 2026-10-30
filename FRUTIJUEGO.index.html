@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aprovecha la fruta: juego de decisiones</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=Patrick+Hand&display=swap" rel="stylesheet">
+<style>
+:root{
+  --kraft:#c9a779; --kraft-d:#a98558; --paper:#fbf4e6; --ink:#2b2118; --brown:#7a4b2a;
+  --green:#4c9a4a; --yellow:#e9c63a; --red:#8a4a2a; --card:#fffaf0; --line:#2b2118;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kraft:#6f5638;--kraft-d:#54402a;--paper:#2a231b;--ink:#f5ead6;--brown:#e0b48a;--card:#3a3126;--line:#f5ead6}}
+:root[data-theme="dark"]{--kraft:#6f5638;--kraft-d:#54402a;--paper:#2a231b;--ink:#f5ead6;--brown:#e0b48a;--card:#3a3126;--line:#f5ead6}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--paper);color:var(--ink);font-family:'Patrick Hand','Segoe UI',sans-serif;font-size:19px;
+  background-image:radial-gradient(rgba(122,75,42,.08) 1px,transparent 1px);background-size:18px 18px;user-select:none;-webkit-user-select:none}
+header{background:var(--kraft);padding:14px 16px;text-align:center;border-bottom:3px solid var(--kraft-d)}
+h1{font-family:'Oswald','Arial Narrow',sans-serif;font-weight:600;font-size:clamp(22px,5vw,34px);margin:0;letter-spacing:.5px;color:var(--ink)}
+.sub{font-size:clamp(15px,3.5vw,19px);margin:2px 0 0;color:var(--ink);opacity:.85}
+main{max-width:760px;margin:0 auto;padding:14px 14px 30px}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:'Oswald',sans-serif;font-size:17px}
+.bar{flex:1;height:12px;border:2px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.bar i{display:block;height:100%;width:0;background:var(--green);transition:width .4s}
+.screen{display:none}.screen.on{display:block}
+.tablet{margin:14px auto;max-width:520px;background:#8f8a82;border:3px solid var(--line);border-radius:28px;padding:20px 14px 26px;position:relative;box-shadow:0 8px 0 rgba(0,0,0,.15)}
+.tablet::before{content:"";position:absolute;top:8px;left:50%;width:7px;height:7px;border-radius:50%;background:var(--line);transform:translateX(-50%)}
+.tablet::after{content:"";position:absolute;bottom:6px;left:50%;width:20px;height:20px;border:2px solid var(--line);border-radius:50%;transform:translateX(-50%)}
+.display{background:var(--card);border:2px solid var(--line);border-radius:6px;padding:14px 10px 16px;text-align:center;position:relative;touch-action:none}
+.caso{font-family:'Oswald',sans-serif;font-size:clamp(26px,7vw,36px);font-weight:600;margin:0}
+.fruit{width:min(200px,48vw);height:min(200px,48vw);margin:6px auto 0;cursor:grab;touch-action:none;position:relative;z-index:5;transition:transform .25s}
+.fruit:active{cursor:grabbing}
+.fruit.drag{transition:none;z-index:50;filter:drop-shadow(0 12px 10px rgba(0,0,0,.3))}
+.fruit svg{width:100%;height:100%;display:block;pointer-events:none}
+.fruit.idle{animation:wob 2.4s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg) translateY(-3px)}}
+.desc{font-size:clamp(19px,5vw,25px);line-height:1.15;margin:4px 0 4px;min-height:2.3em;display:flex;align-items:center;justify-content:center}
+.hint{font-size:15px;opacity:.7;margin:0 0 6px}
+.bins{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.bin{border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:4px 2px;text-align:center;border-radius:12px;transition:transform .15s,background .15s}
+.bin .ic{width:min(84px,22vw);aspect-ratio:1;margin:0 auto;border:2.5px solid var(--line);border-radius:12px;display:grid;place-items:center;transition:transform .15s,box-shadow .15s}
+.bin .ic svg{width:60%;height:60%}
+.bin[data-k=A] .ic{background:var(--green)}.bin[data-k=B] .ic{background:var(--yellow)}.bin[data-k=C] .ic{background:var(--red)}
+.bin b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--brown);color:#fff;font-size:15px;margin-top:5px}
+.bin span{display:block;font-family:'Oswald',sans-serif;font-size:clamp(12px,3.2vw,15px);line-height:1.1;margin-top:3px;font-weight:400}
+.bin.hot{background:rgba(122,75,42,.18)}.bin.hot .ic{transform:scale(1.12);box-shadow:0 0 0 4px var(--brown)}
+.bin:focus-visible,.btn:focus-visible,.fruit:focus-visible{outline:3px solid var(--brown);outline-offset:3px}
+.bin:disabled{cursor:default}
+.fb{display:none;margin-top:12px;padding:12px 14px;border:2.5px solid var(--line);border-radius:12px;background:var(--card);text-align:left}
+.fb.on{display:block;animation:pop .25s}
+@keyframes pop{from{transform:scale(.96);opacity:0}to{transform:none;opacity:1}}
+.fb h3{font-family:'Oswald',sans-serif;margin:0 0 4px;font-size:22px}
+.fb.ok h3{color:var(--green)}.fb.no h3{color:#b3441f}
+.fb p{margin:0 0 10px;line-height:1.25}
+.btn{font-family:'Oswald',sans-serif;font-size:19px;letter-spacing:.5px;background:var(--brown);color:#fff;border:2.5px solid var(--line);border-radius:12px;padding:10px 22px;cursor:pointer;box-shadow:0 4px 0 var(--line)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.center{text-align:center}
+.big{font-family:'Oswald',sans-serif;font-size:clamp(52px,16vw,88px);margin:6px 0;line-height:1}
+.card{background:var(--card);border:2.5px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+.card ol{text-align:left;padding-left:22px;line-height:1.35;margin:8px 0}
+.shake{animation:shk .4s}
+@keyframes shk{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.burst{position:absolute;pointer-events:none;font-size:26px;animation:fly .8s forwards}
+@keyframes fly{to{transform:translate(var(--x),var(--y)) scale(.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>GUÍA DE DISEÑO: JUEGO DE DECISIONES</h1>
+  <p class="sub">¿Qué hacemos con esta fruta? Arrástrala hacia su destino.</p>
+</header>
+<main>
+  <section id="s-start" class="screen on center">
+    <div class="card">
+      <div style="width:120px;margin:0 auto" id="startFruit"></div>
+      <h2 class="caso" style="margin-top:8px">Antes de tirarla, piénsalo</h2>
+      <p>Verás 8 casos de fruta que ya no luce perfecta. Decide su mejor destino:</p>
+      <ol>
+        <li><b>A. Aprovechamiento animal responsable</b>: sana, solo con golpes o sobrante apto.</li>
+        <li><b>B. Transformación (repostería)</b>: muy madura, pero aún buena para cocinar.</li>
+        <li><b>C. Compostaje</b>: con moho o descompuesta, regresa a la tierra.</li>
+      </ol>
+      <p class="hint">Arrastra la fruta, toca una opción o usa las teclas A, B y C.</p>
+      <button class="btn" id="go">Empezar</button>
+      <p class="hint" id="best"></p>
+    </div>
+  </section>
+
+  <section id="s-game" class="screen">
+    <div class="hud"><span id="prog">Caso 1/8</span><div class="bar"><i id="barI"></i></div><span id="score">0 pts</span></div>
+    <div class="tablet" id="tablet">
+      <div class="display" id="display">
+        <h2 class="caso" id="caso">CASO #1</h2>
+        <div class="fruit idle" id="fruit" tabindex="0" role="img" aria-label="Fruta a clasificar"></div>
+        <p class="desc" id="desc"></p>
+        <p class="hint">Arrástrala a una opción</p>
+        <div class="bins" id="bins">
+          <button class="bin" data-k="A"><div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="#e8f5e0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21l9 9 18-20"/></svg></div><b>A</b><span>Aprovechamiento animal responsable</span></button>
+          <button class="bin" data-k="B"><div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="#7a5a1e" stroke-width="5" stroke-linecap="round"><path d="M12 14c0-6 16-6 16 1 0 6-8 6-8 12"/><circle cx="20" cy="34" r="1.5" fill="#7a5a1e"/></svg></div><b>B</b><span>Transformación (Repostería)</span></button>
+          <button class="bin" data-k="C"><div class="ic"><svg viewBox="0 0 40 40" fill="none" stroke="#f1dcc4" stroke-width="6" stroke-linecap="round"><path d="M9 9l22 22M31 9L9 31"/></svg></div><b>C</b><span>Compostaje</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="fb" id="fb" aria-live="polite"><h3 id="fbT"></h3><p id="fbP"></p><button class="btn" id="next">Siguiente</button></div>
+  </section>
+
+  <section id="s-end" class="screen center">
+    <div class="card">
+      <h2 class="caso">¡Resultado final!</h2>
+      <div class="big" id="final"></div>
+      <p id="msg"></p>
+      <p class="hint" id="best2"></p>
+      <button class="btn" id="again">Jugar de nuevo</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const NAMES={A:'Aprovechamiento animal responsable',B:'Transformación (Repostería)',C:'Compostaje'};
+
+// ---------- Frutas en SVG ----------
+const leaf='<path d="M100 40c10-18 30-22 42-14-6 16-24 24-42 14z" fill="#4c9a4a" stroke="#2b2118" stroke-width="3"/>';
+const S='stroke="#2b2118" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+const defs=(id,a,b,c)=>`<defs><radialGradient id="${id}" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="${a}"/><stop offset=".6" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></radialGradient></defs>`;
+const spots=(n,col,seed)=>{let o='',x=seed;for(let i=0;i<n;i++){x=(x*9301+49297)%233280;const a=x/233280;x=(x*9301+49297)%233280;const b=x/233280;o+=`<circle cx="${60+a*80}" cy="${70+b*80}" r="${3+a*6}" fill="${col}" opacity=".55"/>`}return o};
+const mold='<g opacity=".9"><circle cx="85" cy="105" r="14" fill="#9aa88a"/><circle cx="100" cy="115" r="11" fill="#d7ddd0"/><circle cx="78" cy="125" r="9" fill="#b8c4a8"/><circle cx="118" cy="100" r="8" fill="#cfd6c4"/><circle cx="92" cy="98" r="5" fill="#6f7f62"/></g>';
+const F={
+peach:`<svg viewBox="0 0 200 200">${defs('g1','#ffd08a','#f08a4b','#c8472f')}<path d="M100 48c-38-14-72 14-68 58 4 40 36 62 68 62s64-22 68-62c4-44-30-72-68-58z" fill="url(#g1)" ${S}/><path d="M100 50c-14 30-14 78 0 116" fill="none" stroke="#b9442b" stroke-width="3" opacity=".6"/><ellipse cx="78" cy="88" rx="14" ry="22" fill="#fff" opacity=".25" transform="rotate(20 78 88)"/>${spots(5,'#8a3a1f',3)}${leaf}</svg>`,
+apple:`<svg viewBox="0 0 200 200">${defs('g2','#ff9a8a','#d83a35','#8e1d22')}<path d="M100 56c-14-12-62-8-66 42-3 44 28 72 48 72 10 0 14-4 18-4s8 4 18 4c20 0 51-28 48-72-4-50-52-54-66-42z" fill="url(#g2)" ${S}/><path d="M100 56c0-10 2-22 8-30" fill="none" ${S}/>${leaf}<ellipse cx="72" cy="90" rx="10" ry="20" fill="#fff" opacity=".3" transform="rotate(20 72 90)"/><ellipse cx="128" cy="124" rx="18" ry="14" fill="#7b2b1a" opacity=".55"/></svg>`,
+banana:`<svg viewBox="0 0 200 200">${defs('g3','#fff0a0','#f2c230','#b88a12')}<path d="M34 70c6 62 56 96 118 76 10-3 16-12 14-18-40 14-82 0-98-58-2-8-12-10-18-4-8 2-18 2-16 4z" fill="url(#g3)" ${S}/><path d="M34 70c-2-12 2-24 12-30l8 8c-6 6-8 14-6 24z" fill="#6b5a2a" ${S}/>${spots(14,'#4a3012',11)}<path d="M160 142c8-2 12-8 12-14" fill="none" stroke="#2b2118" stroke-width="5" stroke-linecap="round"/></svg>`,
+strawberry:`<svg viewBox="0 0 200 200">${defs('g4','#ff8f8f','#d92b3a','#8c1224')}<path d="M100 44c-48-6-76 18-64 52 10 30 40 76 64 76s54-46 64-76c12-34-16-58-64-52z" fill="url(#g4)" ${S}/>${[[70,90],[100,80],[130,90],[60,118],[88,112],[116,112],[142,118],[78,142],[104,140],[92,162]].map(p=>`<ellipse cx="${p[0]}" cy="${p[1]}" rx="3" ry="4.5" fill="#ffe9a8"/>`).join('')}${mold}<path d="M64 46c14-6 24 6 36 0 12 6 22-6 36 0-6 14-22 14-36 10-14 4-30 4-36-10z" fill="#4c9a4a" ${S}/></svg>`,
+avocado:`<svg viewBox="0 0 200 200">${defs('g5','#a5c47a','#4f7a30','#24421a')}<path d="M100 22c-26 0-36 36-52 66-18 36 0 84 52 84s70-48 52-84c-16-30-26-66-52-66z" fill="url(#g5)" ${S}/><ellipse cx="100" cy="124" rx="30" ry="34" fill="#3b2c1c" ${S}/>${mold}<ellipse cx="88" cy="112" rx="8" ry="12" fill="#fff" opacity=".18"/></svg>`,
+pear:`<svg viewBox="0 0 200 200">${defs('g6','#f2f09a','#b9c93a','#7a8a1c')}<path d="M100 30c-20 0-24 28-32 46-8 18-34 30-34 62 0 28 30 38 66 38s66-10 66-38c0-32-26-44-34-62-8-18-12-46-32-46z" fill="url(#g6)" ${S}/>${spots(9,'#6d5a1c',21)}<path d="M100 30c2-10 8-18 16-22" fill="none" ${S}/><ellipse cx="132" cy="140" rx="16" ry="12" fill="#7a4a1c" opacity=".55"/></svg>`
+};
+const CASES=[
+ {f:'apple',t:'Manzana con un golpe, sin moho ni fermentación',a:'A',e:'La pulpa sana y sin moho puede servir como alimento para animales de granja, siempre en porciones adecuadas y retirando semillas.'},
+ {f:'banana',t:'Banano muy maduro con manchas oscuras',a:'B',e:'Entre más maduro, más dulce: ideal para pan de banano, panqueques o helados caseros.'},
+ {f:'strawberry',t:'Fresas con moho visible',a:'C',e:'El moho puede ser tóxico para personas y animales. Lo seguro es el compostaje.'},
+ {f:'peach',t:'Melocotón ligeramente pasado / overripe',a:'B',e:'Blando pero aromático: perfecto para mermeladas, compotas y tartas. Aprovecha su dulzor.'},
+ {f:'avocado',t:'Aguacate negro y fermentado por dentro',a:'C',e:'Descompuesto no es apto ni para cocinar ni para animales (el aguacate es tóxico para varias especies). Va al compost.'},
+ {f:'pear',t:'Pera caída con golpe leve, sin fermentar',a:'A',e:'Si solo está golpeada y fresca, puede aprovecharse como alimento animal tras retirar las semillas y la zona dañada.'},
+ {f:'peach',t:'Melocotón arrugado y blando, olor dulce',a:'B',e:'Sigue siendo comestible: sirve para almíbar, mermelada o relleno de pasteles.'},
+ {f:'apple',t:'Manzana con moho y fermentada',a:'C',e:'Fermentación + moho: descartar al compost para cerrar el ciclo sin riesgos.'}
+];
+$('#startFruit').innerHTML=F.peach;
+
+// ---------- Estado ----------
+let order,i,score,locked,startT;
+let best=0;try{best=+localStorage.getItem('frutas_best')||0}catch(e){}
+const bestTxt=()=>best?'Mejor puntaje: '+best+' pts':'';
+$('#best').textContent=bestTxt();
+const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))};
+const shuffle=a=>{a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a};
+
+function start(){order=shuffle(CASES);i=0;score=0;show('s-game');load()}
+function load(){
+  locked=false;const c=order[i];
+  $('#caso').textContent='CASO #'+(i+1);
+  const fr=$('#fruit');fr.innerHTML=F[c.f];fr.className='fruit idle';fr.style.transform='';fr.style.display='';
+  fr.setAttribute('aria-label',c.t);
+  $('#desc').textContent=c.t;
+  $('#prog').textContent='Caso '+(i+1)+'/'+order.length;
+  $('#barI').style.width=(i/order.length*100)+'%';
+  $('#score').textContent=score+' pts';
+  $('#fb').className='fb';
+  document.querySelectorAll('.bin').forEach(b=>b.disabled=false);
+  startT=Date.now();
+}
+
+function answer(k,fromRect){
+  if(locked)return;locked=true;
+  const c=order[i],ok=k===c.a,fr=$('#fruit');
+  fr.classList.remove('idle','drag');
+  document.querySelectorAll('.bin').forEach(b=>{b.disabled=true;b.classList.remove('hot')});
+  const bin=document.querySelector(`.bin[data-k=${k}]`);
+  if(ok){
+    const fast=(Date.now()-startT)<6000;const pts=fast?15:10;score+=pts;
+    // vuela a la opción y desaparece
+    const r=bin.querySelector('.ic').getBoundingClientRect(),f=fr.getBoundingClientRect();
+    fr.style.transition='transform .35s,opacity .35s';
+    const dx=r.left+r.width/2-(f.left+f.width/2),dy=r.top+r.height/2-(f.top+f.height/2);
+    fr.style.transform=`translate(${dx}px,${dy}px) scale(.25)`;fr.style.opacity='0';
+    setTimeout(()=>{fr.style.opacity='';fr.style.display='none'},380);
+    burst(bin);
+    feedback(true,'¡Correcto! +'+pts+' pts',c.e);
+  }else{
+    fr.style.transform='';fr.classList.add('shake');
+    setTimeout(()=>fr.classList.remove('shake'),450);
+    feedback(false,'Casi. Lo mejor era: '+NAMES[c.a],c.e);
+  }
+  $('#score').textContent=score+' pts';
+  $('#barI').style.width=((i+1)/order.length*100)+'%';
+}
+function burst(el){
+  const r=el.getBoundingClientRect(),d=$('#display').getBoundingClientRect();
+  for(let n=0;n<8;n++){const s=document.createElement('span');s.className='burst';s.textContent=['🍃','✨','🌿'][n%3];
+    s.style.left=(r.left-d.left+r.width/2)+'px';s.style.top=(r.top-d.top+20)+'px';
+    s.style.setProperty('--x',(Math.random()*120-60)+'px');s.style.setProperty('--y',(-30-Math.random()*70)+'px');
+    $('#display').appendChild(s);setTimeout(()=>s.remove(),850)}
+}
+function feedback(ok,t,p){
+  const fb=$('#fb');fb.className='fb on '+(ok?'ok':'no');
+  $('#fbT').textContent=t;$('#fbP').textContent=p;
+  $('#next').textContent=i===order.length-1?'Ver resultado':'Siguiente';
+  setTimeout(()=>$('#next').focus({preventScroll:true}),50);
+  fb.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function finish(){
+  const max=order.length*15;
+  if(score>best){best=score;try{localStorage.setItem('frutas_best',best)}catch(e){}}
+  $('#final').textContent=score+' pts';
+  const pct=score/(order.length*10);
+  $('#msg').textContent=pct>=1.3?'¡Experto en cero desperdicio! Sabes darle a cada fruta su segunda vida.':pct>=1?'¡Muy bien! Casi dominas el ciclo de aprovechamiento.':pct>=.6?'Buen intento. Repasa cuándo una fruta aún sirve para cocinar.':'Sigue practicando: cada fruta tiene un mejor destino.';
+  $('#best2').textContent=bestTxt()+' (máximo posible: '+max+')';
+  show('s-end');
+}
+
+// ---------- Arrastrar (pointer events: mouse + táctil) ----------
+const fr=$('#fruit');let drag=null;
+function binAt(x,y){return [...document.querySelectorAll('.bin')].find(b=>{const r=b.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top-10&&y<=r.bottom+10})}
+fr.addEventListener('pointerdown',e=>{if(locked)return;fr.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY};fr.classList.remove('idle');fr.classList.add('drag')});
+fr.addEventListener('pointermove',e=>{if(!drag)return;
+  fr.style.transform=`translate(${e.clientX-drag.x}px,${e.clientY-drag.y}px) scale(.8) rotate(${(e.clientX-drag.x)/20}deg)`;
+  const b=binAt(e.clientX,e.clientY);document.querySelectorAll('.bin').forEach(x=>x.classList.toggle('hot',x===b))});
+fr.addEventListener('pointerup',e=>{if(!drag)return;const b=binAt(e.clientX,e.clientY);drag=null;fr.classList.remove('drag');
+  document.querySelectorAll('.bin').forEach(x=>x.classList.remove('hot'));
+  if(b)answer(b.dataset.k);else{fr.style.transform='';fr.classList.add('idle')}});
+fr.addEventListener('pointercancel',()=>{drag=null;fr.classList.remove('drag');fr.style.transform=''});
+
+document.querySelectorAll('.bin').forEach(b=>b.addEventListener('click',()=>answer(b.dataset.k)));
+document.addEventListener('keydown',e=>{
+  const k=e.key.toUpperCase();
+  if($('#s-game').classList.contains('on')){
+    if(!locked&&'ABC'.includes(k)&&k.length===1)answer(k);
+    else if(locked&&(e.key==='Enter'))next();
+  }
+});
+function next(){if(!locked)return;if(i===order.length-1)finish();else{i++;load()}}
+$('#next').addEventListener('click',next);
+$('#go').addEventListener('click',start);
+$('#again').addEventListener('click',start);
+})();
+</script>
+</body>
+</html>
